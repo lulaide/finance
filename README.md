@@ -1,5 +1,5 @@
 # 重庆邮电大学数学建模竞赛题目B
-> [!Author]
+> [!NOTE]
 > @lulaide
 > @BailPlus
 
