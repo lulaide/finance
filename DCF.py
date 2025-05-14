@@ -28,13 +28,13 @@ symbols = [
     "sh603759",
 ]
 for stock in symbols:
-    csv_path = f"data/{stock}_现金流.csv"
+    cash_flow_csv_path = f"data/{stock}_现金流.csv"
 
-    if not os.path.exists(csv_path):
+    if not os.path.exists(cash_flow_csv_path):
         df_cf = stock_cash_flow_sheet_by_report_em(symbol=stock).fillna(0)
-        df_cf.to_csv(csv_path, encoding="utf-8", index=False)
+        df_cf.to_csv(cash_flow_csv_path, encoding="utf-8", index=False)
     else:
-        df_cf = pd.read_csv(csv_path, encoding="utf-8")
+        df_cf = pd.read_csv(cash_flow_csv_path, encoding="utf-8")
 
     # 2. 计算 FCF
     df_fc = df_cf[["REPORT_DATE", "NETCASH_OPERATE", "CONSTRUCT_LONG_ASSET"]].copy()
@@ -68,8 +68,10 @@ for stock in symbols:
     wacc = 0.08  # 折现率 8%
     g = 0.04     # 永续增长率 4%
     ev = calc_dcf(fcf_forecast, wacc, g)
-
-    # 8. 获取当前总市值（单位：亿元），并换算成元
+    # equity_value
+    def calc_equity_value(ev, cash, ):
+        return ev + cash - debt
+    # 8. 获取当前总市值，并换算成元
     spot_path = f"data/实时行情.csv"
     if not os.path.exists(spot_path):
         df_spot = stock_zh_a_spot_em()

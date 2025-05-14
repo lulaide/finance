@@ -2,21 +2,45 @@ import numpy as np
 import pandas as pd
 import akshare as ak
 
-#获取数据  
-df=ak.stock_zh_index_daily('sz000598')
-df['date'] = pd.to_datetime(df.date)
-df = df.set_index('date')
-returns=df.close.pct_change().dropna()  
+# 要计算的一组个股列表
+symbols = [
+    "sz000598", "sz000605", "sz000685", "sz003039",
+    "sh600008", "sh600168", "sh600187", "sh600283",
+    "sh600461", "sh600769", "sh601158", "sh601199",
+    "sh601368", "sh603291", "sh603759",
+]
 
+def calculate_var(symbol: str,
+                  confidence_level: float = 0.95) -> float:
+    """
+    计算单只股票基于非重叠周度对数收益的历史模拟 VaR（百分比形式，正数表示损失）
+    Params:
+      symbol: AkShare 支持的 A 股代码，如 "sz000001"
+      confidence_level: 置信水平，默认 0.95
+    Returns:
+      VaR 值（正数），表示该水平下一周最大可能损失比例
+    """
+    # 获取日线行情
+    df = ak.stock_zh_a_daily(symbol)
+    # 转成 DatetimeIndex
+    df['date'] = pd.to_datetime(df['date'])
+    df = df.set_index('date').sort_index()
 
+    # 计算对数收益
+    df['log_ret'] = np.log(df['close']) - np.log(df['close'].shift(1))
+    df = df.dropna(subset=['log_ret'])
 
-# 置信水平为 95%  
-confidence_level = 0.95  
-# 时间窗口（以天为单位）  
-time_period = 5  # 一周有5个交易日  
-# 计算一周的累积收益率  
-cumulative_returns = (1 + returns).rolling(window=time_period).apply(np.prod) - 1  
-# 计算在1 - 置信水平（这里是5%）处的分位数  
-VaR2 = np.percentile(cumulative_returns.dropna(), 100 * (1 - confidence_level))  
-print(f"在{confidence_level * 100}%的置信水平下，一周的价值在险（VaR）为：{VaR2:.4f}")  
+    # 按周五非重叠累加对数收益
+    # 'W-FRI'：星期五为周的结束点
+    weekly_ret = df['log_ret'].resample('W-FRI').sum().dropna()
 
+    # 计算 5% 分位数（即 1 - confidence_level）
+    # 取负号将其转为正的损失值
+    var_pct = -np.percentile(weekly_ret, (1 - confidence_level) * 100)
+
+    return float(var_pct)
+
+if __name__ == "__main__":
+    for sym in symbols:
+        var = calculate_var(sym)
+        print(f"{sym} 一周 95% VaR = {var * 100:.2f}%")
