@@ -31,7 +31,7 @@ for stock in symbols:
     csv_path = f"data/{stock}_现金流.csv"
 
     if not os.path.exists(csv_path):
-        df_cf = stock_cash_flow_sheet_by_report_em(symbol=stock)
+        df_cf = stock_cash_flow_sheet_by_report_em(symbol=stock).fillna(0)
         df_cf.to_csv(csv_path, encoding="utf-8", index=False)
     else:
         df_cf = pd.read_csv(csv_path, encoding="utf-8")
