@@ -39,7 +39,7 @@ def calc_dcf(fcfs, wacc, g_perp):
     return pv + pv_terminal
 ```
 以下是示例输出（摘自 DCF.py）：
-```bash
+```
 sz000598 | EV=-38,322,284,987元 | 净债务=24,554,330,613元 | 股权价值=-62,876,615,601元 | 市值=21,428,241,297元 | 比率=-2.93
 ------------------------------------------------------------
 sz000605 | EV=-1,127,073,243元 | 净债务=4,829,130,451元 | 股权价值=-5,956,203,694元 | 市值=2,673,152,188元 | 比率=-2.23
@@ -126,9 +126,163 @@ cape = latest_close / avg_eps_10y if avg_eps_10y != 0 else float("nan")
 ### 1.问题描述
 针对不同类型的投资项目（如新建、扩建、改建等），构建一个动态风险评估模型，以量化各类风险（如市场风险、技术风险、政策风险等），识别项目面临的各种风险因素，并评估整体风险水平及各因素的影响程度，从而为项目风险管理提供有力支持。
 
+### 2. 市场风险
+量化方法：VaR (Value at Risk)
+
+#### 理论基础
+在险价值（Value at Risk, VaR）是指特定时间长度内在一定信赖程度上的最大可能损失情形。1993年由G30集团在《衍生产品的实践和规则》报告中提出，用以克服资产负债管理方法过于依赖报表（报表更新过慢，时效性差，无法满足金融业信息更新需求），β和方差方法只能给出波动幅度且过于抽象，以及CAPM方法无法糅合各类金融衍生品的特点。
+
+VaR方法能够给出一定条件下损失最大值的情况，较为直观地反应了风险。虽然VaR方法如今饱受争议，但是其简单、直观的且能不断改进的特性，使其仍然保留不可动摇，难以替代的地位，在金融风险管理方面发挥巨大作用。
+
+
+由于数据提供的局限性等原因，决定采用历史模拟法计算VaR。
+
+#### 模型构建
+- 模型输入：项目信息、财务数据、历史数据、市场数据、模型参数
+- 模型输出：项目风险等级、项目风险因素
+- 计算方法：
+1. 收集历史数据
+收集一定历史期间的资产价格数据（如股票、债券、商品等）。数据应包括：
+历史价格（通常是每日收盘价）；
+或者收益率数据（如每天的收益率，通常为对数收益）。
+
+2. 计算每日收益率
+基于收集到的历史数据，计算每一天的 收益率。计算公式为：
+$$
+R_t = \frac{P_t - P_{t-1}}{P_{t-1}} \quad \text{或} \quad R_t = \ln\left(\frac{P_t}{P_{t-1}}\right)
+$$
+
+3. 排序收益率
+将计算得到的每日收益率从高到低排列。这一步是为了便于在后续计算VaR时找出特定置信度水平对应的损失水平。
+
+4. 确定VaR的置信水平
+选择一个置信水平，通常为 95%，意味着关注的是收益率分布中最坏的 5%（即位于下5%的部分）。
+
+5. 计算VaR
+如果有$N$天的历史收益数据，按照步骤3排序后，找出排名在前5%（或置信度所对应的百分位数）的收益率值。对于95%的置信度，VaR 就是第$5N$排名的收益率。
+
+6. 转换到货币损失
+最后可以根据投资组合的总价值，将其转化为货币损失：
+$$
+\text{VaR}_{\text{货币}} = \text{VaR}_{\text{收益率}} \times \text{投资组合价值}
+$$
+#### 优缺点：
+优点：无需假设数据分布类型，计算简单直接，适合各种资产。
+缺点：完全依赖历史数据，不能有效捕捉未来极端事件（比如“黑天鹅”事件），无法反映在极端市场条件下的风险。
+
+#### 代码实现
+```python
+symbol = '<股票代码>'
+# 获取日线行情
+df = ak.stock_zh_a_daily(symbol)
+# 转成 DatetimeIndex
+df['date'] = pd.to_datetime(df['date'])
+df = df.set_index('date').sort_index()
+
+# 计算对数收益
+df['log_ret'] = np.log(df['close']) - np.log(df['close'].shift(1))
+df = df.dropna(subset=['log_ret'])
+
+# 按周五非重叠累加对数收益
+# 'W-FRI'：星期五为周的结束点
+weekly_ret = df['log_ret'].resample('W-FRI').sum().dropna()
+
+# 计算 5% 分位数（即 1 - confidence_level）
+# 取负号将其转为正的损失值
+var_pct = -np.percentile(weekly_ret, (1 - confidence_level) * 100)
+
+return float(var_pct)
+```
+
+#### 其他模型
+除了价格—均线偏离这种“技术指标”风险，典型的市场风险还包括以下几类：
+
+1. 利率风险 (Interest­-Rate Risk)
+定义：因市场利率变动导致资产或负债公允价值波动的风险。
+量化方法：
+DV01（对久期的敏感度）：
+$$
+\text{DV01} = -\frac{\Delta P}{\Delta y}\times 0.0001
+$$
+
+2. 汇率风险 (Foreign­-Exchange Risk)
+定义：因货币汇率波动导致跨境敞口（收入、成本或头寸）价值变化的风险。
+
+3. 商品风险 (Commodity Risk)
+定义：大宗商品（能源、金属、农产品）价格波动带来的风险。
+量化方法：
+商品价格 VaR 或 CVaR。
+使用期货曲线（contango/backwardation）进行情景模拟。
+4. 波动率风险 (Volatility Risk)
+定义：隐含或历史波动率剧烈变动对期权或波动率衍生品头寸价值的影响。
+量化方法：
+Vega 敏感度：
+$$
+\text{Vega} = \frac{\partial V}{\partial \sigma}
+$$
+
+5. 信用利差风险 (Credit­-Spread Risk)
+定义：债券或信用衍生品的信用利差 (spread) 变动导致估值损益。
+量化方法：
+Spread duration：
+$$
+\text{SpreadDuration} = -\frac{\Delta P}{\Delta s}
+$$
+
+6. 流动性风险 (Liquidity Risk)
+定义：市场深度不足或成交不活跃导致大额头寸难以清算或清算成本大幅上升的风险。
+量化方法：
+Bid–Ask spread 分析。
+Market‑impact 模型：。
+持仓可变现日数 (Days‑to‑Liquidate, DTL)。
+
+7. 基差风险 (Basis Risk)
+定义：现货与衍生品（如期货、互换）之间的价差（基差）变动风险。
+量化方法：
+历史基差波动率。
+基差 VaR。
+
+8. 相关性/集中度风险 (Correlation / Concentration Risk)
+定义：资产间相关性突变导致分散效果失效，或单一敞口过度集中。
+量化方法：
+协方差矩阵压力测试（stress‑test）。
+分散度指标（Herfindahl–Hirschman Index）。
+
+9. 尾部风险 (Tail Risk)
+定义：极端市场事件（如黑天鹅）引发的巨幅损失风险。
+量化方法：
+极值理论 (EVT)：峰值过阈建模估计极端回撤概率。
+CVaR (Conditional VaR) 衡量极端损失的平均值。
+
+10. 系统性风险 (Systemic Risk)
+定义：整个金融系统或市场链条传染放大，导致系统性崩溃的风险。
+量化方法：
+CoVaR（Conditional VaR）：衡量在一家机构违约时，对其他机构的溢出损失。
+网络模型：金融机构间暴露网络的模拟。
+
+### 3. 技术风险
+量化方法：现价相较于MA20的涨幅
+
+#### 代码实现
+```python
+symbol = '<股票代码>'
+df = ak.stock_zh_a_daily(symbol)
+# 计算MA20
+df['MA20'] = df['close'].rolling(window=20).mean()
+# 计算现价相较于MA20的涨幅
+df['technical_risk'] = (df['close'] - df['MA20']) / df['MA20']
+# 统计均值
+technical_risk = sum([df['technical_risk'].iloc[i] for i in range(19,len(df) - 1)])/len(df)
+return technical_risk
+```
+
+### 4. 政策风险
+
 ---
 
 ## 参考资料
 - [什么是估值？其运作方式及方法](https://www.investopedia.com/terms/v/valuation.asp)
 - [估值概述](https://corporatefinanceinstitute.com/resources/valuation/valuation/)
 - [现金流 DCF 公式](https://corporatefinanceinstitute.com/resources/valuation/dcf-formula-guide/)
+- [金融学习笔记（十二）：VaR(Value at Risk)](https://zhuanlan.zhihu.com/p/412026199)
+- [Python量化金融风险分析：一文全面掌握VaR计算](https://blog.csdn.net/aobulaien001/article/details/132911177)

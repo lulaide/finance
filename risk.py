@@ -40,7 +40,19 @@ def calculate_var(symbol: str,
 
     return float(var_pct)
 
+def calculate_technical(symbol: str)->float:
+    df = ak.stock_zh_a_daily(symbol)
+    # 计算MA20
+    df['MA20'] = df['close'].rolling(window=20).mean()
+    # 计算现价相较于MA20的涨幅
+    df['technical_risk'] = (df['close'] - df['MA20']) / df['MA20']
+    # 统计均值
+    technical_risk = sum([df['technical_risk'].iloc[i] for i in range(19,len(df) - 1)])/len(df)
+    return technical_risk
+
 if __name__ == "__main__":
     for sym in symbols:
         var = calculate_var(sym)
+        tech = calculate_technical(sym)
         print(f"{sym} 一周 95% VaR = {var * 100:.2f}%")
+        print(f"{sym} 一周 95% 技术风险 = {tech * 100:.2f}%")
