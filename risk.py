@@ -1,4 +1,5 @@
 from matplotlib import pyplot as plt
+import os
 import numpy as np
 import pandas as pd
 import akshare as ak
@@ -45,6 +46,11 @@ def calculate_var(symbol: str,
     return var_series
 
 def calculate_technical(symbol: str)->pd.Series:
+    """计算技术风险
+symbols(str):股票代码
+返回值:技术风险(pd.Series)
+-----
+通过相对涨幅进行量化"""
     df = ak.stock_zh_a_daily(symbol)
     # 计算MA20
     min_periods = 20
@@ -52,16 +58,31 @@ def calculate_technical(symbol: str)->pd.Series:
     # 计算现价相较于MA20的涨幅
     df['technical_risk'] = (df['close'] - df['MA20']) / df['MA20']
     # 统计均值
-    technical_risk_series = df['technical_risk'].expanding(min_periods=min_periods).mean()
     technical_risk = sum([df['technical_risk'].iloc[i] for i in range(19,len(df) - 1)])/len(df)
+    technical_risk_series = df['technical_risk'].expanding(min_periods=min_periods).mean()
     return technical_risk_series
 
-def draw_var(symbol: str):
-    pass
-    
+def draw(name:str,stock:str,series: pd.Series):
+    """画图
+name(str):图表名称
+stock(str):股票代码
+series(pd.Series):数据"""
+    plt.title(f'Trend of {name}')
+    plt.xlabel('Time')
+    plt.ylabel('Value')
+    for i in series.index:
+        plt.plot(i,series.loc[i],'o')
+    plt.savefig(f'photo/{stock}_{name}.png')
+
+def init():
+    os.makedirs('photo', exist_ok=True)
+
 if __name__ == "__main__":
+    init()
     for sym in symbols:
-        var = calculate_var(sym).iloc[-1]
-        tech = calculate_technical(sym).iloc[-1]
-        print(f"{sym} 一周市场风险 = {var * 100:.2f}%")
-        print(f"{sym} 技术风险 = {tech * 100:.2f}%")
+        var = calculate_var(sym)
+        tech = calculate_technical(sym)
+        print(f"{sym} 一周市场风险 = {var.iloc[-1] * 100:.2f}%")
+        print(f"{sym} 技术风险 = {tech.iloc[-1] * 100:.2f}%")
+        draw('VaR',sym,var)
+        draw('technical risk',sym,tech)
