@@ -20,17 +20,12 @@ pip install -r requirements.txt -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web
 #### 折现现金流量法(DCF Analysis)
 这里代码中 FCF 的预估方法为：
 
-$$
-\mathrm{FCF} = \mathrm{NETCASH\_OPERATE} - \mathrm{CONSTRUCT\_LONG\_ASSET}
-$$
+FCF = NETCASH_OPERATE - CONSTRUCT_LONG_ASSET
 
 DCF 的核心估值公式为：
 
-$$
-\mathrm{Valuation}
-= \sum_{t=1}^{n} \frac{\mathrm{FCF}_{t}}{(1 + r)^{t}}
-+ \frac{\mathrm{FCF}_{n}\,(1 + g_{\infty})}{(r - g_{\infty})\,(1 + r)^{n}}
-$$
+Valuation = Σ(FCF_t / (1 + r)^t) + (FCF_n * (1 + g_infinity)) / ((r - g_infinity) * (1 + r)^n)
+
 其中，r 为加权平均资本成本（WACC），$g_{\infty}$ 为永续增长率。
 
 以下是相应的代码示例（摘自 DCF.py）：
@@ -78,25 +73,17 @@ sh603759 | EV=-1,200,483,402元 | 净债务=3,619,316,137元 | 股权价值=-4,8
 #### 席勒市盈率法(CAPE)
 在 `CAPE.py` 中，流程如下：
 
-1. 从利润表中提取 `BASIC\_EPS`，按年度分组并计算近 10 年的 EPS 均值：
+1. 从利润表中提取 `BASIC_EPS`，按年度分组并计算近 10 年的 EPS 均值：
 
-   $$
-   \mathrm{EPS}_{10\mathrm{y}}
-   = \frac{1}{10} \sum_{i=1}^{10} \mathrm{EPS}_{i}
-   $$
+    EPS_10y = (1 / 10) * Σ(EPS_i) for i in range(1, 11)
 
 2. 获取股票最新的收盘价：
 
-   $$
-   \mathrm{Close}
-   $$
+    Close = latest closing price
 
 3. 计算席勒市盈率（CAPE）：
 
-   $$
-   \mathrm{CAPE}
-   = \frac{\mathrm{Close}}{\mathrm{EPS}_{10\mathrm{y}}}
-   $$
+    CAPE = Close / EPS_10y
 以下是核心代码示例：
 ```python
 # 转换 REPORT_DATE 为 datetime, 排序, 并提取年度 EPS 均值
