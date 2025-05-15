@@ -1,6 +1,7 @@
 # 重庆邮电大学数学建模竞赛题目B
 > [!NOTE]
-> @lulaide
+[**@lulaide**](https://github.com/lulaide)  
+[**@BailPlus**](https://github.com/BailPlus)
 ## 环境准备
 ```bash
 pip install -r requirements.txt
