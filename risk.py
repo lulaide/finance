@@ -1,3 +1,4 @@
+from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import akshare as ak
@@ -11,7 +12,7 @@ symbols = [
 ]
 
 def calculate_var(symbol: str,
-                  confidence_level: float = 0.95) -> float:
+                  confidence_level: float = 0.95) -> pd.Series:
     """
     计算单只股票基于非重叠周度对数收益的历史模拟 VaR（百分比形式，正数表示损失）
     Params:
@@ -37,22 +38,30 @@ def calculate_var(symbol: str,
     # 计算 5% 分位数（即 1 - confidence_level）
     # 取负号将其转为正的损失值
     var_pct = -np.percentile(weekly_ret, (1 - confidence_level) * 100)
+    var_series = weekly_ret.expanding(min_periods=1).apply(
+        lambda x: -np.percentile(x, (1 - confidence_level) * 100),
+        raw=True
+    )
+    return var_series
 
-    return float(var_pct)
-
-def calculate_technical(symbol: str)->float:
+def calculate_technical(symbol: str)->pd.Series:
     df = ak.stock_zh_a_daily(symbol)
     # 计算MA20
-    df['MA20'] = df['close'].rolling(window=20).mean()
+    min_periods = 20
+    df['MA20'] = df['close'].rolling(window=min_periods).mean()
     # 计算现价相较于MA20的涨幅
     df['technical_risk'] = (df['close'] - df['MA20']) / df['MA20']
     # 统计均值
+    technical_risk_series = df['technical_risk'].expanding(min_periods=min_periods).mean()
     technical_risk = sum([df['technical_risk'].iloc[i] for i in range(19,len(df) - 1)])/len(df)
-    return technical_risk
+    return technical_risk_series
 
+def draw_var(symbol: str):
+    pass
+    
 if __name__ == "__main__":
     for sym in symbols:
-        var = calculate_var(sym)
-        tech = calculate_technical(sym)
-        print(f"{sym} 一周 95% VaR = {var * 100:.2f}%")
-        print(f"{sym} 一周 95% 技术风险 = {tech * 100:.2f}%")
+        var = calculate_var(sym).iloc[-1]
+        tech = calculate_technical(sym).iloc[-1]
+        print(f"{sym} 一周市场风险 = {var * 100:.2f}%")
+        print(f"{sym} 技术风险 = {tech * 100:.2f}%")
