@@ -60,14 +60,6 @@ for stock in symbols:
         "席勒市盈率(CAPE)": cape
     })
 
-# 6. 保存结果到 CSV
-df_res = pd.DataFrame(results)
-res_path = "data/15只股票_CAPE估值.csv"
-df_res.to_csv(res_path, encoding="utf-8", index=False)
-
-# 7. 输出 DataFrame
-print(df_res)
-# —— 在原脚本末尾，构建 DataFrame 并排序 —— #
 df_res = pd.DataFrame(results)
 
 # 将 NaN 的 CAPE 看作极大值，避免排在最前
@@ -79,11 +71,9 @@ df_sorted = df_res.sort_values(
     key=lambda x: x.fillna(np.inf)
 ).reset_index(drop=True)
 
-
-
-# 保存排序结果
-sorted_path = "data/15只股票_CAPE价值排序.csv"
-df_sorted.to_csv(sorted_path, encoding="utf-8", index=False)
+# # 保存排序结果
+# sorted_path = "data/15只股票_CAPE价值排序.csv"
+# df_sorted.to_csv(sorted_path, encoding="utf-8", index=False)
 
 # 输出排序后的 DataFrame
 print(df_sorted)
