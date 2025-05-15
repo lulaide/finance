@@ -19,11 +19,18 @@ pip install -r requirements.txt -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web
 ### 2.估值方法
 #### 折现现金流量法(DCF Analysis)
 这里代码中 FCF 的预估方法为：
-$$\text{FCF} = \text{NETCASH\_OPERATE} - \text{CONSTRUCT\_LONG\_ASSET}$$
-即利用经营现金流减去长期资产建设支出进行估算。
+
+$$
+\mathrm{FCF} = \mathrm{NETCASH\_OPERATE} - \mathrm{CONSTRUCT\_LONG\_ASSET}
+$$
 
 DCF 的核心估值公式为：
-$$\text{Valuation} = \sum_{t=1}^{n} \frac{\text{FCF}_{t}}{(1+r)^t} + \frac{\text{FCF}_{n} \times (1 + g_{\infty})}{(r - g_{\infty})(1+r)^n}$$
+
+$$
+\mathrm{Valuation}
+= \sum_{t=1}^{n} \frac{\mathrm{FCF}_{t}}{(1 + r)^{t}}
++ \frac{\mathrm{FCF}_{n}\,(1 + g_{\infty})}{(r - g_{\infty})\,(1 + r)^{n}}
+$$
 其中，r 为加权平均资本成本（WACC），$g_{\infty}$ 为永续增长率。
 
 以下是相应的代码示例（摘自 DCF.py）：
@@ -69,12 +76,27 @@ sh603291 | EV=-1,634,723,152元 | 净债务=1,775,682,786元 | 股权价值=-3,4
 sh603759 | EV=-1,200,483,402元 | 净债务=3,619,316,137元 | 股权价值=-4,819,799,539元 | 市值=3,721,785,600元 | 比率=-1.30
 ```
 #### 席勒市盈率法(CAPE)
-在 CAPE.py 中，流程如下：
-1. 从利润表中提取 "BASIC_EPS"，按年度分组并计算近10年的 EPS 均值：
-   $$\text{EPS}_{10y} = \frac{1}{10}\sum_{i=1}^{10} \text{EPS}_{i}$$
-2. 获取股票最新的收盘价：$$\text{Close}$$
+在 `CAPE.py` 中，流程如下：
+
+1. 从利润表中提取 `BASIC\_EPS`，按年度分组并计算近 10 年的 EPS 均值：
+
+   $$
+   \mathrm{EPS}_{10\mathrm{y}}
+   = \frac{1}{10} \sum_{i=1}^{10} \mathrm{EPS}_{i}
+   $$
+
+2. 获取股票最新的收盘价：
+
+   $$
+   \mathrm{Close}
+   $$
+
 3. 计算席勒市盈率（CAPE）：
-   $$\text{CAPE} = \frac{\text{Close}}{\text{EPS}_{10y}}$$  
+
+   $$
+   \mathrm{CAPE}
+   = \frac{\mathrm{Close}}{\mathrm{EPS}_{10\mathrm{y}}}
+   $$
 以下是核心代码示例：
 ```python
 # 转换 REPORT_DATE 为 datetime, 排序, 并提取年度 EPS 均值
