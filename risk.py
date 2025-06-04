@@ -51,7 +51,9 @@ symbols(str):股票代码
     # 计算现价相较于MA20的涨幅
     df['technical_risk'] = (df['close'] - df['MA20']) / df['MA20']
     # 统计均值
-    technical_risk = sum([df['technical_risk'].iloc[i] for i in range(19,len(df) - 1)])/len(df)
+    technical_risk = sum(
+        [df['technical_risk'].iloc[i] for i in range(19, len(df) - 1)]
+    ) / len(range(19, len(df) - 1))
     technical_risk_series = df['technical_risk'].expanding(min_periods=min_periods).mean()
     return technical_risk_series
 
