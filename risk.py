@@ -39,19 +39,21 @@ def calculate_var(df:pd.DataFrame,
     )
     return var_series
 
-def calculate_technical(df: pd.DataFrame)->pd.Series:
-    """计算技术风险
-symbols(str):股票代码
-返回值:技术风险(pd.Series)
------
-通过相对涨幅进行量化"""
+def calculate_technical(df: pd.DataFrame) -> pd.Series:
+    """计算技术风险的滚动均值
+
+    参数:
+        df (pd.DataFrame): 含有 ``close`` 列的行情数据
+
+    返回:
+        pd.Series: 技术风险的逐步平均值
+    """
     # 计算MA20
     min_periods = 20
     df['MA20'] = df['close'].rolling(window=min_periods).mean()
     # 计算现价相较于MA20的涨幅
     df['technical_risk'] = (df['close'] - df['MA20']) / df['MA20']
-    # 统计均值
-    technical_risk = sum([df['technical_risk'].iloc[i] for i in range(19,len(df) - 1)])/len(df)
+    # 计算逐步平均的技术风险
     technical_risk_series = df['technical_risk'].expanding(min_periods=min_periods).mean()
     return technical_risk_series
 
